@@ -31,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Uncomment to create dummy data:
+        // Feeder.feed(getApplicationContext());
+
         examName = findViewById(R.id.idNameExam);
 
         NfcManager manager = (NfcManager) this.getSystemService(Context.NFC_SERVICE);
