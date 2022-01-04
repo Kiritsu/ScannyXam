@@ -20,7 +20,4 @@ public interface BadgingDao {
 
     @Insert
     void insert(Badging... badgings);
-
-    @Delete
-    void delete(Badging badging);
 }

@@ -1,19 +1,32 @@
 package com.jensyl.scannyxam.database;
 
-import androidx.room.ColumnInfo;
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-
-import java.sql.Date;
 
 @Entity
 public class Badging {
     @PrimaryKey
+    @NonNull
     public String idBadging;
 
+    @NonNull
     public String idUserBadging;
 
-    public Date date;
+    @NonNull
+    public String date;
 
+    @NonNull
     public String exam;
+
+    public Badging(
+            @NonNull String idBadging,
+            @NonNull String idUserBadging,
+            @NonNull String date,
+            @NonNull String exam) {
+        this.idBadging = idBadging;
+        this.idUserBadging = idUserBadging;
+        this.date = date;
+        this.exam = exam;
+    }
 }
