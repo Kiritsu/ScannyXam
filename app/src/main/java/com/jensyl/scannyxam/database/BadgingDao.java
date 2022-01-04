@@ -1,6 +1,7 @@
 package com.jensyl.scannyxam.database;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 
@@ -19,4 +20,7 @@ public interface BadgingDao {
 
     @Insert
     void insert(Badging... badgings);
+
+    @Delete
+    void delete(Badging badging);
 }
