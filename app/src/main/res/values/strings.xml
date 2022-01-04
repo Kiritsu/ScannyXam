@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">ScannyXam</string>
+    <string name="cancel">Annuler</string>
+    <string name="validate">Enregistrer</string>
+    <string name="dialog_new_user">Veuillez entrer vos informations :</string>
+    <string name="name">Nom</string>
+    <string name="prenom">Prénom</string>
+    <string name="idUniv">ID Université</string>
+    <string name="leocardPass">Veuillez passer votre Léocarte sur le lecteur NFC !</string>
+    <string name="export_exams">Export Exams</string>
+    <string name="nomExam">Nom de l\'examen</string>
 </resources>
