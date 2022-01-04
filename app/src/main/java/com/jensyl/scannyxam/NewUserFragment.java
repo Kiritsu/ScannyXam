@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
 import androidx.room.Room;
 
@@ -20,14 +21,15 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class NewUserFragment extends DialogFragment {
-    private String idLeocard;
-    private String examen;
+    private final String idLeocard;
+    private final String examen;
 
     public NewUserFragment(String idLeocard, String examen) {
         this.idLeocard = idLeocard;
         this.examen = examen;
     }
 
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -70,9 +72,7 @@ public class NewUserFragment extends DialogFragment {
                         Looper.myLooper().quit();
                     }).start();
                 })
-                .setNegativeButton(R.string.cancel, (dialog, id) -> {
-                    dialog.cancel();
-                });
+                .setNegativeButton(R.string.cancel, (dialog, id) -> dialog.cancel());
 
         return builder.create();
     }

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Looper;
 import android.widget.EditText;
@@ -32,21 +31,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Intent intent;
-        intent = this.getIntent();
-
         examName = findViewById(R.id.idNameExam);
 
         NfcManager manager = (NfcManager) this.getSystemService(Context.NFC_SERVICE);
         adapter = manager.getDefaultAdapter();
 
         if (adapter != null) {
-            if (adapter.isEnabled()) {
-                if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(intent.getAction())) {
-                    Tag tagFromIntent = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                }
-            }
-
             mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
                     getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
         }
