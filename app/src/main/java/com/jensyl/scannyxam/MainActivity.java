@@ -1,7 +1,5 @@
 package com.jensyl.scannyxam;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +8,11 @@ import android.nfc.NfcManager;
 import android.nfc.Tag;
 import android.os.Bundle;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.room.Room;
+
+import com.jensyl.scannyxam.database.ScannyXamDatabase;
 
 import java.math.BigInteger;
 
@@ -21,6 +24,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        new Thread(() -> {
+            ScannyXamDatabase db = Room
+                    .databaseBuilder(
+                            getApplicationContext(),
+                            ScannyXamDatabase.class,
+                            "scanny-xam")
+                    .build();
+
+            //List<UserWithBadgings> users = db.userDao().getUsersWithBadgings();
+
+            //db.userDao().insert(new User("test123", "ma173017", "Allan", "Mercou"));
+            //db.badgingDao().insert(new Badging("test", "test123", "2022-01-03 10:00:00", "Anglais"));
+        }).start();
 
         Intent intent;
         intent = this.getIntent();
@@ -70,6 +87,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void printToast(String s) {
-        Toast.makeText(this, s, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Scanned nfc id: " + s, Toast.LENGTH_LONG).show();
     }
 }
