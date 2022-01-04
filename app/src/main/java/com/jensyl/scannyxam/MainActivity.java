@@ -5,53 +5,38 @@ import android.content.Context;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
-import android.nfc.Tag;
 import android.os.Bundle;
+import android.os.Looper;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.room.Room;
 
+import com.jensyl.scannyxam.database.Badging;
 import com.jensyl.scannyxam.database.ScannyXamDatabase;
+import com.jensyl.scannyxam.database.User;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     private NfcAdapter adapter;
     private PendingIntent mPendingIntent;
+    private EditText examName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new Thread(() -> {
-            ScannyXamDatabase db = Room
-                    .databaseBuilder(
-                            getApplicationContext(),
-                            ScannyXamDatabase.class,
-                            "scanny-xam")
-                    .build();
-
-            //List<UserWithBadgings> users = db.userDao().getUsersWithBadgings();
-
-            //db.userDao().insert(new User("test123", "ma173017", "Allan", "Mercou"));
-            //db.badgingDao().insert(new Badging("test", "test123", "2022-01-03 10:00:00", "Anglais"));
-        }).start();
-
-        Intent intent;
-        intent = this.getIntent();
+        examName = findViewById(R.id.idNameExam);
 
         NfcManager manager = (NfcManager) this.getSystemService(Context.NFC_SERVICE);
         adapter = manager.getDefaultAdapter();
 
         if (adapter != null) {
-            if (adapter.isEnabled()) {
-                if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(intent.getAction())) {
-                    Tag tagFromIntent = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                }
-            }
-
             mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
                     getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
         }
@@ -83,7 +68,34 @@ public class MainActivity extends AppCompatActivity {
         byte[] uid = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
 
         String s = new BigInteger(uid).toString(16);
-        printToast(s);
+
+        new Thread(() -> {
+            ScannyXamDatabase db = Room
+                    .databaseBuilder(
+                            getApplicationContext(),
+                            ScannyXamDatabase.class,
+                            "scanny-xam")
+                    .build();
+
+            User user = db.userDao().getById(s);
+            if (user == null) {
+                NewUserFragment fragment = new NewUserFragment(s, examName.getText().toString());
+                fragment.show(getSupportFragmentManager(), "new_user");
+            } else {
+                Badging badging = new Badging(
+                        UUID.randomUUID().toString(),
+                        s,
+                        LocalDateTime.now().toString(),
+                        examName.getText().toString());
+
+                db.badgingDao().insert(badging);
+
+                Looper.prepare();
+                printToast("User: [" + user.idUniversity + " | " + user.idUser + "] " + user.firstName + " " + user.lastName + " (" + examName.getText().toString() + ")");
+                Looper.loop();
+                Looper.myLooper().quit();
+            }
+        }).start();
     }
 
     public void printToast(String s) {
