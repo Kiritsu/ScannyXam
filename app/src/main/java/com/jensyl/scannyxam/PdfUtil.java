@@ -1,8 +1,11 @@
 package com.jensyl.scannyxam;
 
 import android.content.Context;
+import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.room.Room;
 
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
@@ -15,10 +18,15 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.jensyl.scannyxam.database.Badging;
+import com.jensyl.scannyxam.database.ScannyXamDatabase;
+import com.jensyl.scannyxam.database.UserWithBadgings;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PdfUtil {
     private static final Font FONT_TITLE = new Font(Font.FontFamily.TIMES_ROMAN, 16, Font.BOLD);
@@ -31,53 +39,63 @@ public class PdfUtil {
         void onPDFDocumentClose(File file);
     }
 
-    static void createPdf(@NonNull Context mContext, OnDocumentClose mCallback, List<String[]> items, @NonNull String filePath) throws Exception
+    static void createPdf(@NonNull Context mContext, OnDocumentClose mCallback, @NonNull String filePath) throws Exception
     {
-        if(filePath.equals(""))
-        {
-            throw new NullPointerException("PDF File Name can't be null or blank. PDF File can't be created");
-        }
+        new Thread(() -> {
+            try {
+                if (filePath.equals("")) {
+                    throw new NullPointerException("PDF File Name can't be null or blank. PDF File can't be created");
+                }
 
-        File file = new File(filePath);
+                File file = new File(filePath);
 
-        if(file.exists())
-        {
-            file.delete();
-            Thread.sleep(50);
-        }
+                if (file.exists()) {
+                    file.delete();
+                    Thread.sleep(50);
+                }
 
-        Document document = new Document();
-        document.setMargins(24f,24f,32f,32f);
-        document.setPageSize(PageSize.A4);
+                Document document = new Document();
+                document.setMargins(24f, 24f, 32f, 32f);
+                document.setPageSize(PageSize.A4);
 
-        PdfWriter pdfWriter = PdfWriter.getInstance(document, new FileOutputStream(filePath));
-        pdfWriter.setFullCompression();
-        pdfWriter.setPageEvent(new PageNumeration());
+                PdfWriter pdfWriter = PdfWriter.getInstance(document, new FileOutputStream(filePath));
+                pdfWriter.setFullCompression();
+                pdfWriter.setPageEvent(new PageNumeration());
 
-        document.open();
+                document.open();
 
-        setMetaData(document);
+                setMetaData(document);
 
-        addHeader(mContext,document);
-        addEmptyLine(document, 3);
+                addHeader("Relevé de pointage", document);
+                addEmptyLine(document, 3);
+                ScannyXamDatabase db = Room
+                        .databaseBuilder(
+                                mContext,
+                                ScannyXamDatabase.class,
+                                "scanny-xam")
+                        .build();
 
-        document.add(createDataTable(items));
+                createDataTable(db.userDao().getUsersWithBadgings(),document);
 
-        addEmptyLine(document,2);
+                addEmptyLine(document, 2);
 
-        document.close();
+                document.close();
 
-        try
-        {
-            pdfWriter.close();
-        }
-        catch (Exception ignored)
-        {}
+                try {
+                    pdfWriter.close();
+                } catch (Exception ignored) {
+                }
 
-        if(mCallback!=null)
-        {
-            mCallback.onPDFDocumentClose(file);
-        }
+                Looper.prepare();
+                if (mCallback != null) {
+                    mCallback.onPDFDocumentClose(file);
+                }
+                Looper.loop();
+                Looper.myLooper().quit();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private static  void addEmptyLine(Document document, int number) throws DocumentException
@@ -96,11 +114,10 @@ public class PdfUtil {
         document.addHeader("DEVELOPER","Allan MERCOU & Mike DEVRESSE");
     }
 
-    private static void addHeader(Context mContext, Document document) throws Exception
+    private static void addHeader(String text, Document document) throws Exception
     {
-        PdfPTable table = new PdfPTable(3);
+        PdfPTable table = new PdfPTable(1);
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{2,7,2});
         table.getDefaultCell().setBorder(PdfPCell.NO_BORDER);
         table.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
         table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -114,7 +131,7 @@ public class PdfUtil {
             cell.setPadding(8f);
             cell.setUseAscender(true);
 
-            Paragraph temp = new Paragraph("Relevé de pointage" ,FONT_TITLE);
+            Paragraph temp = new Paragraph(text ,FONT_TITLE);
             temp.setAlignment(Element.ALIGN_CENTER);
             cell.addElement(temp);
 
@@ -124,67 +141,115 @@ public class PdfUtil {
         document.add(table);
     }
 
-    private static PdfPTable createDataTable(List<String[]> dataTable) throws DocumentException
+    private static void createDataTable(List<UserWithBadgings> dataTable, Document document) throws Exception
     {
-        PdfPTable table1 = new PdfPTable(2);
-        table1.setWidthPercentage(100);
-        table1.setWidths(new float[]{1f,2f});
-        table1.setHeaderRows(1);
-        table1.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
-        table1.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+        HashMap<String, HashMap<String,String[]>> values = new HashMap<>();
+        for (UserWithBadgings userWithBadgings: dataTable) {
+            String username = userWithBadgings.user.firstName + " " + userWithBadgings.user.lastName;
 
-        PdfPCell cell;
-        {
-            cell = new PdfPCell(new Phrase("COLUMN - 1", FONT_COLUMN));
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cell.setPadding(4f);
-            table1.addCell(cell);
-
-            cell = new PdfPCell(new Phrase("COLUMN - 2", FONT_COLUMN));
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cell.setPadding(4f);
-            table1.addCell(cell);
+            Log.i("Test", String.valueOf(userWithBadgings.Badgings.size()));
+            for (Badging badging: userWithBadgings.Badgings) {
+                if(!values.containsKey(badging.exam)) {
+                    values.put(badging.exam, new HashMap<>());
+                }
+                HashMap<String, String[]> examHashMap = values.get(badging.exam);
+                assert examHashMap != null;
+                if(!examHashMap.containsKey(username)) {
+                    String[] badges = new String[2];
+                    badges[0] = badging.date;
+                    examHashMap.put(username, badges);
+                }
+                else {
+                    String[] badges = examHashMap.get(username);
+                    assert badges != null;
+                    badges[1] = badging.date;
+                    examHashMap.put(username,badges);
+                }
+            }
         }
 
-        float top_bottom_Padding = 8f;
-        float left_right_Padding = 4f;
-        boolean alternate = false;
+        Log.i("Test",values.toString());
 
-        BaseColor lt_gray = new BaseColor(221,221,221); //#DDDDDD
-        BaseColor cell_color;
+        for(Map.Entry<String, HashMap<String,String[]>> entry : values.entrySet()) {
+            String exam = entry.getKey();
+            HashMap<String, String[]> userBadges = entry.getValue();
 
-        int size = dataTable.size();
+            addHeader(exam,document);
 
-        for (int i = 0; i < size; i++)
-        {
-            cell_color = alternate ? lt_gray : BaseColor.WHITE;
-            String[] temp = dataTable.get(i);
+            PdfPTable table1 = new PdfPTable(3);
+            table1.setWidthPercentage(100);
+            table1.setHeaderRows(1);
+            table1.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+            table1.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
 
-            cell = new PdfPCell(new Phrase(temp[0], FONT_CELL));
-            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cell.setPaddingLeft(left_right_Padding);
-            cell.setPaddingRight(left_right_Padding);
-            cell.setPaddingTop(top_bottom_Padding);
-            cell.setPaddingBottom(top_bottom_Padding);
-            cell.setBackgroundColor(cell_color);
-            table1.addCell(cell);
+            PdfPCell cell;
+            {
+                cell = new PdfPCell(new Phrase("Etudiant", FONT_COLUMN));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(4f);
+                table1.addCell(cell);
 
-            cell = new PdfPCell(new Phrase(temp[1], FONT_CELL));
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cell.setPaddingLeft(left_right_Padding);
-            cell.setPaddingRight(left_right_Padding);
-            cell.setPaddingTop(top_bottom_Padding);
-            cell.setPaddingBottom(top_bottom_Padding);
-            cell.setBackgroundColor(cell_color);
-            table1.addCell(cell);
+                cell = new PdfPCell(new Phrase("Entrée", FONT_COLUMN));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(4f);
+                table1.addCell(cell);
 
-            alternate = !alternate;
+                cell = new PdfPCell(new Phrase("Sortie", FONT_COLUMN));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(4f);
+                table1.addCell(cell);
+            }
+
+            float top_bottom_Padding = 8f;
+            float left_right_Padding = 4f;
+            boolean alternate = false;
+
+            BaseColor lt_gray = new BaseColor(221,221,221); //#DDDDDD
+            BaseColor cell_color;
+
+            for (Map.Entry<String,String[]> userBadge: userBadges.entrySet()) {
+                String user = userBadge.getKey();
+                String[] badges = userBadge.getValue();
+
+                cell_color = alternate ? lt_gray : BaseColor.WHITE;
+
+                cell = new PdfPCell(new Phrase(user, FONT_CELL));
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPaddingLeft(left_right_Padding);
+                cell.setPaddingRight(left_right_Padding);
+                cell.setPaddingTop(top_bottom_Padding);
+                cell.setPaddingBottom(top_bottom_Padding);
+                cell.setBackgroundColor(cell_color);
+                table1.addCell(cell);
+
+                cell = new PdfPCell(new Phrase(badges[0], FONT_CELL));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPaddingLeft(left_right_Padding);
+                cell.setPaddingRight(left_right_Padding);
+                cell.setPaddingTop(top_bottom_Padding);
+                cell.setPaddingBottom(top_bottom_Padding);
+                cell.setBackgroundColor(cell_color);
+                table1.addCell(cell);
+
+                cell = new PdfPCell(new Phrase(badges[1], FONT_CELL));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPaddingLeft(left_right_Padding);
+                cell.setPaddingRight(left_right_Padding);
+                cell.setPaddingTop(top_bottom_Padding);
+                cell.setPaddingBottom(top_bottom_Padding);
+                cell.setBackgroundColor(cell_color);
+                table1.addCell(cell);
+
+                alternate = !alternate;
+            }
+
+            document.add(table1);
         }
-
-        return table1;
     }
 }

@@ -4,10 +4,6 @@ import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
@@ -26,6 +22,7 @@ import androidx.room.Room;
 import com.jensyl.scannyxam.database.Badging;
 import com.jensyl.scannyxam.database.ScannyXamDatabase;
 import com.jensyl.scannyxam.database.User;
+import com.jensyl.scannyxam.database.UserWithBadgings;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements PdfUtil.OnDocumen
         setContentView(R.layout.activity_main);
 
         // Uncomment to create dummy data:
-        // new Thread(() -> Feeder.feed(getApplicationContext())).start();
+        //new Thread(() -> Feeder.feed(getApplicationContext())).start();
 
         examName = findViewById(R.id.idNameExam);
 
@@ -120,42 +117,26 @@ public class MainActivity extends AppCompatActivity implements PdfUtil.OnDocumen
     }
 
     public void generatePdf(View view) throws Exception {
-        // create a new document
-        PdfDocument document = new PdfDocument();
-        // crate a page description
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
-        // start a page
-        PdfDocument.Page page = document.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
-
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        canvas.drawText("test", 80, 50, paint);
-        // finish the page
-        document.finishPage(page);
-
-
         // write the document content
-        String directory_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "/";
+        String directory_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getPath() + "/";
         File root = new File(directory_path);
         if (!root.exists()) {
             root.mkdirs();
         }
         File gpxfile = new File(root, "releve.pdf");
         try {
-            PdfUtil.createPdf(this,this, getSampleData(),gpxfile.getPath());
+            PdfUtil.createPdf(this,this,gpxfile.getPath());
 
         } catch (IOException e) {
             Log.e("Error", "Something wrong: " + e.toString());
             Toast.makeText(this, "Something wrong: " + e.toString(),  Toast.LENGTH_LONG).show();
         }
-        // close the document
-        document.close();
     }
 
     @Override
     public void onPDFDocumentClose(File file)
     {
+        Toast.makeText(this, "Saved to: "+file.getPath(), Toast.LENGTH_LONG).show();
         Uri path = FileProvider.getUriForFile(this, getApplicationContext().getPackageName()+ ".provider", file);;
         // Setting the intent for pdf reader
         Intent pdfIntent = new Intent(Intent.ACTION_VIEW);
@@ -167,16 +148,5 @@ public class MainActivity extends AppCompatActivity implements PdfUtil.OnDocumen
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, "Can't read pdf file", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private List<String[]> getSampleData()
-    {
-        int count = 20;
-        List<String[]> temp = new ArrayList<>();
-        for (int i = 0; i < count; i++)
-        {
-            temp.add(new String[] {"C1-R"+ (i+1),"C2-R"+ (i+1)});
-        }
-        return  temp;
     }
 }
