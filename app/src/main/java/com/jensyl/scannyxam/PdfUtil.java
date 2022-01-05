@@ -147,7 +147,6 @@ public class PdfUtil {
         for (UserWithBadgings userWithBadgings: dataTable) {
             String username = userWithBadgings.user.firstName + " " + userWithBadgings.user.lastName;
 
-            Log.i("Test", String.valueOf(userWithBadgings.Badgings.size()));
             for (Badging badging: userWithBadgings.Badgings) {
                 if(!values.containsKey(badging.exam)) {
                     values.put(badging.exam, new HashMap<>());
@@ -167,8 +166,6 @@ public class PdfUtil {
                 }
             }
         }
-
-        Log.i("Test",values.toString());
 
         for(Map.Entry<String, HashMap<String,String[]>> entry : values.entrySet()) {
             String exam = entry.getKey();
