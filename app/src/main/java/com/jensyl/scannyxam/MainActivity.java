@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Uncomment to create dummy data:
-        // Feeder.feed(getApplicationContext());
+        new Thread(() -> Feeder.feed(getApplicationContext())).start();
 
         examName = findViewById(R.id.idNameExam);
 
